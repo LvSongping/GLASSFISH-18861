@@ -134,7 +134,7 @@ public class SetCommand extends V2DottedNameSupport implements AdminCommand, Pos
      * @param value
      * @return
      */
-    private boolean judgecontextroot(String value){
+    private boolean judgecontextroot(AdminCommandContext context,String value){
         int app_size = app.getApplications().size();
         HashSet<String> appName = new HashSet();
         if(value.contains("context-root")){
@@ -156,6 +156,7 @@ public class SetCommand extends V2DottedNameSupport implements AdminCommand, Pos
                 for(int i = 0;i<app_size;i++ ){
                     if(appname.equals(app.getApplications().get(i).getName())){
                         if(contextroot.equals(app.getApplications().get(i).getContextRoot())){
+                            fail(context, localStrings.getLocalString("admin.set.contextroot.duplicated",":Virtual server already has a web module {0} loaded at {1}; therefore this web module cannot be loaded at this context.",appname,contextroot));
                             return true;
                             }
                         }
@@ -407,10 +408,12 @@ public class SetCommand extends V2DottedNameSupport implements AdminCommand, Pos
         }
         if (!changes.isEmpty()) {
             try {
-                if(!judgecontextroot(nameval)){
+                if(!judgecontextroot(context,nameval)){
                     config.apply(changes);
                     success(context, targetName, value);
                     runLegacyChecks(context);
+                }else{
+                    return false;
                 }
             } catch (TransactionFailure transactionFailure) {
                 //fail(context, "Could not change the attributes: " +
