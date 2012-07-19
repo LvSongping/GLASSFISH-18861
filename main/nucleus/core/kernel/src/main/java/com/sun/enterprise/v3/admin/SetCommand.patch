@@ -1,0 +1,103 @@
+Index: SetCommand.java
+===================================================================
+--- SetCommand.java	(revision 53871)
++++ SetCommand.java	(working copy)
+@@ -41,6 +41,7 @@
+ package com.sun.enterprise.v3.admin;
+ 
+ import com.sun.enterprise.admin.util.ClusterOperationUtil;
++import com.sun.enterprise.config.serverbeans.Applications;
+ import com.sun.enterprise.config.serverbeans.Domain;
+ import com.sun.enterprise.config.serverbeans.Server;
+ import com.sun.enterprise.util.LocalStringManagerImpl;
+@@ -84,6 +85,9 @@
+     BaseServiceLocator habitat;
+ 
+     @Inject
++    Applications app; 
++
++    @Inject
+     Domain domain;
+ 
+     @Inject
+@@ -125,6 +129,63 @@
+         }
+     }
+ 
++    /**
++     * author Jeremy_Lv
++     * @param value
++     * @return
++     */
++    private boolean judgecontextroot(AdminCommandContext context,String value){
++        int app_size = app.getApplications().size();
++        HashSet<String> appName = new HashSet();
++        if(value.contains("context-root")){
++        	int appIndex = value.indexOf("application.");
++        	appIndex = appIndex + 12;
++        	int flag = value.indexOf(".context-root=/");
++        	String modulename = value.substring(appIndex, flag);
++            flag=flag+14;
++            String contextroot = value.substring(flag);
++            for(int i = 0;i < app_size;i++ ){
++                if(modulename.equals(app.getApplications().get(i).getName())){
++                    appName = judgetargetdulicated(app.getApplications().get(i).getName());
++                    break;
++                    }
++            }
++            Iterator<String> it=appName.iterator();
++            while(it.hasNext()){
++                String appname = it.next();
++                for(int i = 0;i<app_size;i++ ){
++                    if(appname.equals(app.getApplications().get(i).getName())){
++                        if(contextroot.equals(app.getApplications().get(i).getContextRoot())){
++                            fail(context, localStrings.getLocalString("admin.set.contextroot.duplicated",":Virtual server already has a web module {0} loaded at {1}; therefore this web module cannot be loaded at this context.",appname,contextroot));
++                            return true;
++                            }
++                        }
++                    }
++            }
++        }
++        return false;
++    }
++
++    /**
++     * author Jeremy_Lv
++     * @param value
++     * @return
++     */
++    private HashSet<String> judgetargetdulicated(String modulename){
++        int serv_size = domain.getServers().getServer().size();
++        HashSet<String> appName = new HashSet();
++        for(int i= 0;i<serv_size;i++){
++            for(int j=0;j<domain.getServers().getServer().get(i).getApplicationRef().size();j++){
++                if(modulename.equals(domain.getServers().getServer().get(i).getApplicationRef().get(j).getRef())){
++                    for(int z=0;z<domain.getServers().getServer().get(i).getApplicationRef().size();z++){
++                        appName.add(domain.getServers().getServer().get(i).getApplicationRef().get(z).getRef());
++                        }
++                    }
++                }
++            }
++        return appName;
++    }
++
+     private boolean set(AdminCommandContext context, String nameval) {
+ 
+         int i = nameval.indexOf('=');
+@@ -347,9 +408,13 @@
+         }
+         if (!changes.isEmpty()) {
+             try {
+-                config.apply(changes);
+-                success(context, targetName, value);
+-                runLegacyChecks(context);
++                if(!judgecontextroot(context,nameval)){
++                    config.apply(changes);
++                    success(context, targetName, value);
++                    runLegacyChecks(context);
++                }else{
++                    return false;
++                }
+             } catch (TransactionFailure transactionFailure) {
+                 //fail(context, "Could not change the attributes: " +
+                 //        transactionFailure.getMessage(), transactionFailure);
