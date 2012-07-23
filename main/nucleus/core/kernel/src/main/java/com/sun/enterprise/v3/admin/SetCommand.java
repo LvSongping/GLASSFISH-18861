@@ -134,19 +134,24 @@ public class SetCommand extends V2DottedNameSupport implements AdminCommand, Pos
      * @param value
      * @return
      */
-    private boolean judgecontextroot(AdminCommandContext context,String value){
+    private boolean isCtxRootexist(AdminCommandContext context,String value){
         int app_size = app.getApplications().size();
+        String Origin_Ctx = "";
+        String contextroot = "";
         HashSet<String> appName = new HashSet();
         if(value.contains("context-root")){
-        	int appIndex = value.indexOf("application.");
-        	appIndex = appIndex + 12;
-        	int flag = value.indexOf(".context-root=/");
-        	String modulename = value.substring(appIndex, flag);
-            flag=flag+14;
-            String contextroot = value.substring(flag);
+            String[] temp = value.split("\\.");
+            String modulename = temp[2];
+            for(int i=3;i<temp.length;i++){
+                Origin_Ctx =Origin_Ctx + temp[i];
+                }
+            String[] temp1 = Origin_Ctx.split("\\=");
+            for(int i=1;i<temp1.length;i++){
+                contextroot = contextroot + temp1[i];
+                }
             for(int i = 0;i < app_size;i++ ){
                 if(modulename.equals(app.getApplications().get(i).getName())){
-                    appName = judgetargetdulicated(app.getApplications().get(i).getName());
+                    appName = validateTargetDup(app.getApplications().get(i).getName());
                     break;
                     }
             }
@@ -156,7 +161,7 @@ public class SetCommand extends V2DottedNameSupport implements AdminCommand, Pos
                 for(int i = 0;i<app_size;i++ ){
                     if(appname.equals(app.getApplications().get(i).getName())){
                         if(contextroot.equals(app.getApplications().get(i).getContextRoot())){
-                            fail(context, localStrings.getLocalString("admin.set.contextroot.duplicated",":Virtual server already has a web module {0} loaded at {1}; therefore this web module cannot be loaded at this context.",appname,contextroot));
+                            fail(context, localStrings.getLocalString("admin.set.contextroot.duplicated",":Virtual server already has a web module {0} loaded at {1}; therefore this web module cannot be edited at this context.",appname,contextroot));
                             return true;
                             }
                         }
@@ -171,14 +176,15 @@ public class SetCommand extends V2DottedNameSupport implements AdminCommand, Pos
      * @param value
      * @return
      */
-    private HashSet<String> judgetargetdulicated(String modulename){
+    private HashSet<String> validateTargetDup(String modulename){
         int serv_size = domain.getServers().getServer().size();
         HashSet<String> appName = new HashSet();
         for(int i= 0;i<serv_size;i++){
-            for(int j=0;j<domain.getServers().getServer().get(i).getApplicationRef().size();j++){
+        	int appref_size = domain.getServers().getServer().get(i).getApplicationRef().size();
+            for(int j=0;j<appref_size;j++){
                 if(modulename.equals(domain.getServers().getServer().get(i).getApplicationRef().get(j).getRef())){
-                    for(int z=0;z<domain.getServers().getServer().get(i).getApplicationRef().size();z++){
-                        appName.add(domain.getServers().getServer().get(i).getApplicationRef().get(z).getRef());
+                    for(int k=0;k<appref_size;k++){
+                        appName.add(domain.getServers().getServer().get(i).getApplicationRef().get(k).getRef());
                         }
                     }
                 }
@@ -408,7 +414,7 @@ public class SetCommand extends V2DottedNameSupport implements AdminCommand, Pos
         }
         if (!changes.isEmpty()) {
             try {
-                if(!judgecontextroot(context,nameval)){
+                if(!isCtxRootexist(context,nameval)){
                     config.apply(changes);
                     success(context, targetName, value);
                     runLegacyChecks(context);

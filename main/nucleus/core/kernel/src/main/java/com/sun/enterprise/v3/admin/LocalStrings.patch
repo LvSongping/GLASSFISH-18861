@@ -6,7 +6,7 @@ Index: LocalStrings.properties
  admin.set.invalid.attributename=Invalid attribute name {0}
  admin.set.reject.keychange=Cannot change a primary key\nChange of {0}
  admin.set.configuration.notfound=No configuration found for {0}
-+admin.set.contextroot.duplicated=:Virtual server already has a web module {0} loaded at {1}; therefore this web module cannot be loaded at this context. 
++admin.set.contextroot.duplicated=:Virtual server already has a web module {0} loaded at {1}; therefore this web module cannot be edited at this context. 
  admin.set.attribute.change.failure=Could not change the attributes: {0}
  admin.set.delete.property.failure=Could not delete the property: {0}
  admin.set.deprecated=WARNING: The attribute {0} is deprecated.
